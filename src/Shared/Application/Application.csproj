@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<AssemblyName>MOJ.Shared.Application</AssemblyName>
+	<RootNamespace>MOJ.Shared.Application</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
