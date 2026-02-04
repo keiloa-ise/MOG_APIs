@@ -7,6 +7,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using MOJ.Modules.UserManagments.Application.Behaviors;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
+using MOJ.Modules.UserManagments.Application.Common.Services;
 using MOJ.Modules.UserManagments.Infrastructure.Persistence;
 using MOJ.Modules.UserManagments.Infrastructure.Services;
 using System.Reflection;
@@ -121,6 +122,7 @@ namespace APIs
                 provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
             builder.Services.AddSingleton<ITokenService, TokenService>();
+            builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
             //  яжнд MediatR
             var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");

@@ -11,7 +11,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
     public class ChangeUserRoleCommand : IRequest<ApiResponse<ChangeUserRoleResponse>>
     {
         public ChangeUserRoleRequest Request { get; }
-        public int CurrentUserId { get; } // المستخدم الذي يقوم بالتغيير
+        public int CurrentUserId { get; } 
 
         public ChangeUserRoleCommand(ChangeUserRoleRequest request, int currentUserId)
         {
@@ -24,7 +24,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
     {
         public int UserId { get; set; }
         public int NewRoleId { get; set; }
-        public string Reason { get; set; } // سبب التغيير (اختياري)
+        public string Reason { get; set; } 
     }
 
     public class ChangeUserRoleResponse

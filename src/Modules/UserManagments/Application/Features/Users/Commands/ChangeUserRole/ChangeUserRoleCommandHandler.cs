@@ -40,7 +40,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
 
                 try
                 {
-                    // 1. التحقق من وجود المستخدم
+                    // 1. Verify user existence
                     var user = await _context.AppUsers
                         .Include(u => u.Role)
                         .FirstOrDefaultAsync(u => u.Id == command.Request.UserId, cancellationToken);
@@ -59,7 +59,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                             new List<string> { "Cannot change role for inactive user" });
                     }
 
-                    // 2. التحقق من وجود الدور الجديد
+                    // 2. Checking for the new role
                     var newRole = await _context.Roles
                         .FirstOrDefaultAsync(r => r.Id == command.Request.NewRoleId, cancellationToken);
 
@@ -77,7 +77,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                             new List<string> { "Cannot assign inactive role to user" });
                     }
 
-                    // 3. التحقق من صلاحيات المستخدم الحالي
+                    // 3. Checking the current user's permissions
                     var currentUser = await _context.AppUsers
                         .Include(u => u.Role)
                         .FirstOrDefaultAsync(u => u.Id == command.CurrentUserId, cancellationToken);
@@ -89,7 +89,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                             new List<string> { "Current user not found" });
                     }
 
-                    // 4. التحقق من عدم تغيير دور المستخدم لنفسه
+                    // 4. Checking that the user's role has not been changed for themselves
                     if (command.Request.UserId == command.CurrentUserId)
                     {
                         return ApiResponse<ChangeUserRoleResponse>.Error(
@@ -97,10 +97,10 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                             new List<string> { "You cannot change your own role" });
                     }
 
-                    // 5. التحقق من عدم تغيير دور SuperAdmin (حماية)
+                    // 5. Check that the SuperAdmin role has not been changed (Protection)
                     if (user.Role?.Name == Role.DefaultRoles.SuperAdmin)
                     {
-                        // فقط SuperAdmin آخر يمكنه تغيير دور SuperAdmin
+                        // Only another SuperAdmin can change the SuperAdmin role.
                         if (currentUser.Role?.Name != Role.DefaultRoles.SuperAdmin)
                         {
                             return ApiResponse<ChangeUserRoleResponse>.Error(
@@ -109,7 +109,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                         }
                     }
 
-                    // 6. التحقق من صلاحيات تغيير الدور
+                    // 6. Checking role change permissions
                     if (!CanChangeRole(currentUser.Role?.Name, user.Role?.Name, newRole.Name))
                     {
                         return ApiResponse<ChangeUserRoleResponse>.Error(
@@ -117,17 +117,17 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                             new List<string> { "You do not have permission to perform this action" });
                     }
 
-                    // 7. حفظ الدور السابق
+                    // 7. Save the previous role
                     var previousRoleId = user.RoleId;
                     var previousRoleName = user.Role?.Name ?? "Unknown";
 
-                    // 8. تغيير دور المستخدم
+                    // 8. Change user role
                     user.ChangeRole(command.Request.NewRoleId);
                     user.SetUpdatedAt(_dateTime.UtcNow);
 
                     _context.AppUsers.Update(user);
 
-                    // 9. إنشاء سجل للتغيير (Audit Log)
+                    // 9. Create a change log (Audit Log)
                     var roleChangeLog = new UserRoleChangeLog(
                         userId: user.Id,
                         previousRoleId: previousRoleId,
@@ -140,11 +140,11 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
 
                     await _context.UserRoleChangeLogs.AddAsync(roleChangeLog, cancellationToken);
 
-                    // 10. حفظ التغييرات
+                    // 10. 
                     await _context.SaveChangesAsync(cancellationToken);
                     await transaction.CommitAsync(cancellationToken);
 
-                    // 11. إعداد الاستجابة
+                    // 11. 
                     var response = new ChangeUserRoleResponse
                     {
                         UserId = user.Id.ToString(),
@@ -178,7 +178,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
 
         private bool CanChangeRole(string currentUserRole, string targetUserRole, string newRole)
         {
-            // قواعد الصلاحيات لتغيير الأدوار
+            // Rules of authority for changing roles
             var roleHierarchy = new Dictionary<string, int>
             {
                 { Role.DefaultRoles.SuperAdmin, 1 },
@@ -189,16 +189,16 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                 { Role.DefaultRoles.Viewer, 6 }
             };
 
-            // 1. SuperAdmin يمكنه تغيير أي دور
+            // 1.SuperAdmin can change any role
             if (currentUserRole == Role.DefaultRoles.SuperAdmin)
                 return true;
 
-            // 2. Admin يمكنه تغيير أي دور ما عدا SuperAdmin
+            // 2. Admin can change any role except SuperAdmin
             if (currentUserRole == Role.DefaultRoles.Admin &&
                 targetUserRole != Role.DefaultRoles.SuperAdmin)
                 return true;
 
-            // 3. يمكن للمستخدم تغيير الأدوار التي تكون أقل منه في التسلسل الهرمي
+            // 3. The user can change roles that are below him in the hierarchy
             if (roleHierarchy.ContainsKey(currentUserRole) &&
                 roleHierarchy.ContainsKey(targetUserRole) &&
                 roleHierarchy.ContainsKey(newRole))
@@ -207,9 +207,9 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeU
                 var targetUserLevel = roleHierarchy[targetUserRole];
                 var newRoleLevel = roleHierarchy[newRole];
 
-                // يمكن تغيير دور المستخدم إذا:
-                // أ. المستخدم الحالي أعلى من المستخدم الهدف
-                // ب. الدور الجديد أعلى أو يساوي مستوى المستخدم الحالي
+                // The user role can be changed if:
+                // a. The current user is higher than the target user
+                // b. The new role is higher than or equal to the current user's level
                 return currentUserLevel < targetUserLevel && newRoleLevel >= currentUserLevel;
             }
 

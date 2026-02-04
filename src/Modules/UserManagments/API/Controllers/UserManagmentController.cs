@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangePassword;
 using MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeUserRole;
 using MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin;
 using MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup;
@@ -33,7 +34,64 @@ namespace MOJ.Modules.UserManagments.API.Controllers
             _mediator = mediator;
             _logger = logger;
         }
+        [Authorize]
+        [HttpPost("change-password")]
+        [ProducesResponseType(typeof(ApiResponse<ChangePasswordResponse>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status401Unauthorized)]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            try
+            {
+                // الحصول على ID المستخدم الحالي من الـ token
+                var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value;
 
+                if (string.IsNullOrEmpty(currentUserIdClaim) || !int.TryParse(currentUserIdClaim, out int currentUserId))
+                {
+                    return BadRequest(new
+                    {
+                        Status = "error",
+                        Message = "Invalid authentication token"
+                    });
+                }
+
+                var command = new ChangePasswordCommand(request, currentUserId);
+                var result = await _mediator.Send(command);
+
+                if (result.Status == "error")
+                {
+                    return BadRequest(new
+                    {
+                        result.Status,
+                        result.Message,
+                        result.Errors
+                    });
+                }
+
+                return Ok(result);
+            }
+            catch (FluentValidation.ValidationException ex)
+            {
+                _logger.LogWarning("Validation failed: {Errors}", ex.Message);
+                return BadRequest(new
+                {
+                    Status = "error",
+                    Message = "Validation failed",
+                    Errors = ex.Errors.Select(e => e.ErrorMessage)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error changing password");
+                return StatusCode(StatusCodes.Status500InternalServerError, new
+                {
+                    Status = "error",
+                    Message = "An internal server error occurred",
+                    Detail = ex.Message
+                });
+            }
+        }
         [HttpPost("signin")]
         [ProducesResponseType(typeof(ApiResponse<SigninResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -122,7 +180,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         {
             try
             {
-                // عرض جميع الـ Claims للـ debugging
+                // Show all claims for debugging
                 _logger.LogInformation("User authenticated: {IsAuthenticated}", User.Identity?.IsAuthenticated);
                 _logger.LogInformation("User name: {Name}", User.Identity?.Name);
 
@@ -131,7 +189,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
                     _logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
                 }
 
-                // البحث عن الـ UserId بطرق مختلفة
+                // Searching for the UserId in different ways
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                                ?? User.FindFirst(JwtRegisteredClaimNames.Sub)?.Value
                                ?? User.FindFirst("sub")?.Value
@@ -295,7 +353,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         {
             try
             {
-                // الحصول على ID المستخدم الحالي من الـ token
+                // Obtain the current user ID from the token
                 var currentUserIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
                     ?? User.FindFirst("sub")?.Value;
 
@@ -391,7 +449,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         {
             try
             {
-                // استخدام نفس ChangeUserRoleCommand
+                // 
                 var changeRoleRequest = new ChangeUserRoleRequest
                 {
                     UserId = userId,
@@ -437,7 +495,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
             }
         }
 
-        // DTO إضافي
+        // DTO 
         public class AssignRoleRequest
         {
             public int RoleId { get; set; }

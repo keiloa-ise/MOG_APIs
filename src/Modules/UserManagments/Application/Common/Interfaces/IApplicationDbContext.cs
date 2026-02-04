@@ -13,10 +13,12 @@ namespace MOJ.Modules.UserManagments.Application.Common.Interfaces
         DbSet<AppUser> AppUsers { get; }
         DbSet<Role> Roles { get; }
         DbSet<UserRoleChangeLog> UserRoleChangeLogs { get; }
+        DbSet<PasswordChangeLog> PasswordChangeLogs { get; }
+        DbSet<PasswordHistory> PasswordHistories { get; }
         DbContext DbContext { get; } 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 
-        // إضافة لـ transaction support
+        // Adding transaction support
         Task<Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction> BeginTransactionAsync(
             CancellationToken cancellationToken = default);
     }

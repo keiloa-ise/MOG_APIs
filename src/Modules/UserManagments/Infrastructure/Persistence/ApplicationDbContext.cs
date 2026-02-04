@@ -10,6 +10,8 @@ namespace MOJ.Modules.UserManagments.Infrastructure.Persistence
         public DbSet<AppUser> AppUsers { get; set; }
         public DbSet<Role> Roles { get; set; }
         public DbSet<UserRoleChangeLog> UserRoleChangeLogs { get; set; }
+        public DbSet<PasswordChangeLog> PasswordChangeLogs { get; set; }
+        public DbSet<PasswordHistory> PasswordHistories { get; set; }
         public DbContext DbContext => this;
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -146,6 +148,40 @@ namespace MOJ.Modules.UserManagments.Infrastructure.Persistence
                     .WithMany()
                     .HasForeignKey(l => l.NewRoleId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+            // PasswordChangeLog Configuration
+            modelBuilder.Entity<PasswordChangeLog>(entity =>
+            {
+                entity.HasIndex(p => p.UserId);
+                entity.HasIndex(p => p.CreatedAt);
+
+                entity.Property(p => p.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(p => p.User)
+                    .WithMany()
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                entity.HasOne(p => p.ChangedByUser)
+                    .WithMany()
+                    .HasForeignKey(p => p.ChangedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // PasswordHistory Configuration
+            modelBuilder.Entity<PasswordHistory>(entity =>
+            {
+                entity.HasIndex(p => p.UserId);
+                entity.HasIndex(p => p.CreatedAt);
+
+                entity.Property(p => p.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.HasOne(p => p.User)
+                    .WithMany()
+                    .HasForeignKey(p => p.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
             });
         }
     }

@@ -12,7 +12,6 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
         public DateTime CreatedAt { get; protected set; }
         public DateTime? UpdatedAt { get; protected set; }
 
-        // إضافة methods لتعيين القيم
         public void SetCreatedAt(DateTime createdAt)
         {
             CreatedAt = createdAt;

@@ -37,7 +37,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
         {
             try
             {
-                // البحث عن المستخدم مع الـ Role
+                // Searching for the user with Role
                 var user = await _context.AppUsers
                     .Include(u => u.Role) // Include Role data
                     .FirstOrDefaultAsync(u =>
@@ -61,7 +61,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                         new List<string> { "Please contact administrator" });
                 }
 
-                // التحقق من أن Role المستخدم نشط
+                // Check that the user's role is active
                 if (user.Role == null || !user.Role.IsActive)
                 {
                     _logger.LogWarning("User role is inactive: {UserId}, RoleId: {RoleId}",
@@ -71,7 +71,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                         new List<string> { "Please contact administrator" });
                 }
 
-                // التحقق من كلمة المرور
+                // Password verification
                 var isValidPassword = BCrypt.Net.BCrypt.Verify(
                     request.Request.Password,
                     user.PasswordHash);
@@ -84,19 +84,19 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                         new List<string> { "Authentication failed" });
                 }
 
-                // تحديث وقت آخر تسجيل دخول
+                // Last login time updated
                 user.UpdateLastLogin();
                 _context.AppUsers.Update(user);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // إنشاء tokens مع Role
+                // Create tokens with Role
                 var tokens = _tokenService.GenerateTokens(
                     user.Id,
                     user.Username,
                     user.Email,
                     user.Role?.Name ?? "User");
 
-                // إعداد الاستجابة
+                // Response setting
                 var response = new SigninResponse
                 {
                     UserId = user.Id.ToString(),

@@ -80,5 +80,11 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
             // يمكنك إضافة منطق التحقق من الصلاحيات هنا
             return Role != null && Role.IsActive;
         }
+        // إضافة method لتغيير كلمة المرور
+        public void ChangePassword(string newPasswordHash)
+        {
+            PasswordHash = newPasswordHash;
+            UpdatedAt = DateTime.UtcNow;
+        }
     }
 }

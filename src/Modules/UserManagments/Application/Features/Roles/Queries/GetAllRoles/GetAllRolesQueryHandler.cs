@@ -33,7 +33,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Roles.Queries.GetAllRo
             {
                 var query = _context.Roles.AsQueryable();
 
-                // فلترة حسب النشاط
+                // Filter by activity
                 if (request.IsActive.HasValue)
                 {
                     query = query.Where(r => r.IsActive == request.IsActive.Value);

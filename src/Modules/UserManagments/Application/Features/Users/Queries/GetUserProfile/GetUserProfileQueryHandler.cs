@@ -31,8 +31,6 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Queries.GetUserP
         {
             try
             {
-                // يجب أن يكون هناك جدول Roles في الـ DbContext
-                // إذا كان هناك جدول Roles، استخدم Include
                 var user = await _context.AppUsers
                     .Include(u => u.Role) // Include Role data
                     .AsNoTracking()

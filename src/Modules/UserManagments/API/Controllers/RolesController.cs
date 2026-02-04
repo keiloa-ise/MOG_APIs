@@ -17,7 +17,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "SuperAdmin,Admin")] // فقط الأدوار المسموحة
+    [Authorize(Roles = "SuperAdmin,Admin")] 
     public class RolesController : ApiControllerBase
     {
         private readonly IMediator _mediator;
@@ -52,13 +52,12 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         }
 
         [HttpGet("available")]
-        [AllowAnonymous] // السماح للجميع برؤية الأدوار المتاحة
         [ProducesResponseType(typeof(ApiResponse<List<RoleDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAvailableRoles()
         {
             try
             {
-                var query = new GetAllRolesQuery(true); // فقط الأدوار النشطة
+                var query = new GetAllRolesQuery(true); 
                 var result = await _mediator.Send(query);
                 return Ok(result);
             }

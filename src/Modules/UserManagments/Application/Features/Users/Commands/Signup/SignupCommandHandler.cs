@@ -31,7 +31,6 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
         {
             try
             {
-                // التحقق من وجود المستخدم
                 var existingUser = await _context.AppUsers
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u =>
@@ -52,7 +51,6 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
                         errors);
                 }
 
-                // التحقق من وجود الـ Role
                 var roleExists = await _context.Roles
                     .AnyAsync(r => r.Id == request.Request.RoleId && r.IsActive, cancellationToken);
 
@@ -63,25 +61,21 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
                         new List<string> { $"Role with ID {request.Request.RoleId} does not exist or is inactive" });
                 }
 
-                // تشفير كلمة المرور
                 var passwordHash = BCrypt.Net.BCrypt.HashPassword(
                     request.Request.Password,
                     workFactor: 12);
 
-                // إنشاء المستخدم الجديد
                 var user = new AppUser(
                     request.Request.Username,
                     request.Request.Email,
                     passwordHash,
-                    request.Request.RoleId, // استخدام RoleId
+                    request.Request.RoleId,
                     request.Request.FullName,
                     request.Request.PhoneNumber);
 
-                // حفظ المستخدم
                 await _context.AppUsers.AddAsync(user, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // جلب بيانات الـ Role
                 var role = await _context.Roles
                     .AsNoTracking()
                     .FirstOrDefaultAsync(r => r.Id == user.RoleId, cancellationToken);
@@ -89,7 +83,6 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
                 _logger.LogInformation("User registered successfully: {Email} with role {RoleName}",
                     request.Request.Email, role?.Name);
 
-                // إعداد الاستجابة
                 var response = new UserSignupResponse
                 {
                     UserId = user.Id.ToString(),
