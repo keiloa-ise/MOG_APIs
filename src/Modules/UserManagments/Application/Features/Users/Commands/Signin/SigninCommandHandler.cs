@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
 using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
+using MOJ.Shared.Application.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,9 +37,9 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
         {
             try
             {
-                // Search for a user using their username or email address.
+                // البحث عن المستخدم مع الـ Role
                 var user = await _context.AppUsers
-                    .AsNoTracking()
+                    .Include(u => u.Role) // Include Role data
                     .FirstOrDefaultAsync(u =>
                         u.Username == request.Request.UsernameOrEmail ||
                         u.Email == request.Request.UsernameOrEmail,
@@ -60,7 +61,17 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                         new List<string> { "Please contact administrator" });
                 }
 
-                // Password verification
+                // التحقق من أن Role المستخدم نشط
+                if (user.Role == null || !user.Role.IsActive)
+                {
+                    _logger.LogWarning("User role is inactive: {UserId}, RoleId: {RoleId}",
+                        user.Id, user.RoleId);
+                    return ApiResponse<SigninResponse>.Error(
+                        "Your role is not active",
+                        new List<string> { "Please contact administrator" });
+                }
+
+                // التحقق من كلمة المرور
                 var isValidPassword = BCrypt.Net.BCrypt.Verify(
                     request.Request.Password,
                     user.PasswordHash);
@@ -73,26 +84,27 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                         new List<string> { "Authentication failed" });
                 }
 
-                // Last login time updated
+                // تحديث وقت آخر تسجيل دخول
                 user.UpdateLastLogin();
                 _context.AppUsers.Update(user);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // Create tokens
+                // إنشاء tokens مع Role
                 var tokens = _tokenService.GenerateTokens(
                     user.Id,
                     user.Username,
                     user.Email,
-                    user.Role);
+                    user.Role?.Name ?? "User");
 
-                // 
+                // إعداد الاستجابة
                 var response = new SigninResponse
                 {
                     UserId = user.Id.ToString(),
                     Username = user.Username,
                     Email = user.Email,
                     FullName = user.FullName,
-                    Role = user.Role,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role?.Name ?? "User",
                     AccessToken = tokens.AccessToken,
                     RefreshToken = tokens.RefreshToken,
                     TokenExpiry = tokens.ExpiresAt,
@@ -100,7 +112,8 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                     Message = "Login successful"
                 };
 
-                _logger.LogInformation("User logged in successfully: {UserId}", user.Id);
+                _logger.LogInformation("User logged in successfully: {UserId} with role {RoleName}",
+                    user.Id, user.Role?.Name);
 
                 return ApiResponse<SigninResponse>.Success(response, "Login successful");
             }

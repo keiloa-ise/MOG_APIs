@@ -9,6 +9,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using MOJ.Shared.Application.DTOs;
 
 namespace Application.Features.Users.Queries.CheckAvailability
 {

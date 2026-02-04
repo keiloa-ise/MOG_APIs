@@ -27,14 +27,14 @@ namespace MOJ.Modules.UserManagments.Application.Common.Interfaces
             _rng = RandomNumberGenerator.Create();
         }
 
-        public TokenResponse GenerateTokens(int userId, string username, string email, string role)
+        public TokenResponse GenerateTokens(int userId, string username, string email, string roleName)
         {
             var claims = new[]
             {
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.UniqueName, username),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, email),
-                new Claim(ClaimTypes.Role, role),
+                new Claim(ClaimTypes.Role, roleName), 
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };

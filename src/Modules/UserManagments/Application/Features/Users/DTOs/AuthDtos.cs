@@ -20,7 +20,8 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public string Username { get; set; }
         public string Email { get; set; }
         public string FullName { get; set; }
-        public string Role { get; set; }
+        public string RoleName { get; set; } // إضافة RoleName
+        public int RoleId { get; set; } // إضافة RoleId
 
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string AccessToken { get; set; }

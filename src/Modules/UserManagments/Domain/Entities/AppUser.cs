@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace MOJ.Modules.UserManagments.Domain.Entities
-{ 
+{
     public class AppUser : BaseEntity
     {
         public string Username { get; private set; }
@@ -16,8 +16,13 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
         public string FullName { get; private set; }
         public string PhoneNumber { get; private set; }
         public bool IsActive { get; private set; }
-        public string Role { get; private set; }
         public DateTime? LastLogin { get; private set; }
+
+        // Foreign Key لـ Role
+        public int RoleId { get; private set; }
+
+        // Navigation Property
+        public Role Role { get; private set; }
 
         private AppUser() { } // For EF Core
 
@@ -25,16 +30,17 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
             string username,
             string email,
             string passwordHash,
+            int roleId,
             string fullName = null,
             string phoneNumber = null)
         {
             Username = username ?? throw new ArgumentNullException(nameof(username));
             Email = email ?? throw new ArgumentNullException(nameof(email));
             PasswordHash = passwordHash ?? throw new ArgumentNullException(nameof(passwordHash));
+            RoleId = roleId;
             FullName = fullName;
             PhoneNumber = phoneNumber;
             IsActive = true;
-            Role = "User";
             CreatedAt = DateTime.UtcNow;
         }
 
@@ -61,6 +67,18 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
             FullName = fullName;
             PhoneNumber = phoneNumber;
             UpdatedAt = DateTime.UtcNow;
+        }
+
+        public void ChangeRole(int roleId)
+        {
+            RoleId = roleId;
+            UpdatedAt = DateTime.UtcNow;
+        }
+
+        public bool HasPermission(string permission)
+        {
+            // يمكنك إضافة منطق التحقق من الصلاحيات هنا
+            return Role != null && Role.IsActive;
         }
     }
 }

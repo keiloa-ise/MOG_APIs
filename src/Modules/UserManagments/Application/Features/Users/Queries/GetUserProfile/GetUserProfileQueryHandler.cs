@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
 using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
+using MOJ.Shared.Application.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -30,7 +31,10 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Queries.GetUserP
         {
             try
             {
+                // يجب أن يكون هناك جدول Roles في الـ DbContext
+                // إذا كان هناك جدول Roles، استخدم Include
                 var user = await _context.AppUsers
+                    .Include(u => u.Role) // Include Role data
                     .AsNoTracking()
                     .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
 
@@ -48,7 +52,8 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Queries.GetUserP
                     Email = user.Email,
                     FullName = user.FullName,
                     PhoneNumber = user.PhoneNumber,
-                    Role = user.Role,
+                    RoleId = user.RoleId,
+                    RoleName = user.Role?.Name ?? "Unknown", // Get Role name
                     CreatedAt = user.CreatedAt,
                     LastLogin = user.LastLogin,
                     IsActive = user.IsActive

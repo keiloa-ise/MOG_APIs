@@ -4,6 +4,7 @@
 https://github.com/keiloa-ise/MOG_APIs
 
 ### Prerequisites
+- Modern API Design with CQRS
 - .NET 9.0 SDK or newer
 - SQL Server 
 
@@ -13,8 +14,10 @@ https://github.com/keiloa-ise/MOG_APIs
 3. Migrations (Package Manager Console):
     * cd APIs
     * dotnet restore
+    * (SKIP) sqlcmd -S "(localdb)\MSSQLLocalDB" -d "MOJ_Users" -Q "DROP TABLE IF EXISTS __EFMigrationsHistory"
+    * (SKIP) Remove-Migration
     * dotnet build
-    * Add-Migration InitialCreate -OutputDir "Infrastructure/Persistence/Migrations"
+    * Add-Migration InitialCreateWithRoles -OutputDir Data\Migrations
     * Update-Database
 
 ## Content
@@ -22,4 +25,4 @@ https://github.com/keiloa-ise/MOG_APIs
 | ------------- |:-------------:|:-------------:|
 | APIs | Main Project | Web API |
 | UserManagments | User Managment Logic | Class Library |
-
+| Shared | Shared | Class Library |

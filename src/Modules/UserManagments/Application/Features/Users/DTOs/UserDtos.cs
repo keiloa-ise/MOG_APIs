@@ -14,6 +14,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public string ConfirmPassword { get; set; }
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
+        public int RoleId { get; set; } = 3; // Default to "User" role (Id = 3)
     }
 
     public class UserSignupResponse
@@ -22,6 +23,8 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public string Username { get; set; }
         public string Email { get; set; }
         public string FullName { get; set; }
+        public string RoleName { get; set; } 
+        public int RoleId { get; set; } 
         public DateTime CreatedAt { get; set; }
         public string Message { get; set; }
     }
@@ -39,34 +42,17 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public string Username { get; set; }
         public string Message { get; set; }
     }
-
-    public class ApiResponse<T>
+    public class UserProfileResponse
     {
-        public string Status { get; set; }
-        public string Message { get; set; }
-        public T Data { get; set; }
-        public List<string> Errors { get; set; }
-
-        public static ApiResponse<T> Success(T data, string message = "Success")
-        {
-            return new ApiResponse<T>
-            {
-                Status = "success",
-                Message = message,
-                Data = data,
-                Errors = null
-            };
-        }
-
-        public static ApiResponse<T> Error(string message, List<string> errors = null)
-        {
-            return new ApiResponse<T>
-            {
-                Status = "error",
-                Message = message,
-                Data = default,
-                Errors = errors
-            };
-        }
+        public string UserId { get; set; }
+        public string Username { get; set; }
+        public string Email { get; set; }
+        public string FullName { get; set; }
+        public string PhoneNumber { get; set; }
+        public string RoleName { get; set; } 
+        public int RoleId { get; set; } 
+        public DateTime CreatedAt { get; set; }
+        public DateTime? LastLogin { get; set; }
+        public bool IsActive { get; set; }
     }
 }

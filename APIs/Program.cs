@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
@@ -26,7 +27,7 @@ namespace APIs
 
             // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
-            builder.Services.AddEndpointsApiExplorer();  // Add Swagger
+            builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
             {
                 // ≈÷«›… JWT Authentication ›Ì Swagger
@@ -54,18 +55,26 @@ namespace APIs
                     }
                 });
             });
-            //  ﬂÊÌ‰ ﬁ«⁄œ… «·»Ì«‰« 
+
+            //  ﬂÊÌ‰ ﬁ«⁄œ… «·»Ì«‰«  „⁄  Ã«Â· «· Õ–Ì—« 
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
+            {
                 options.UseSqlServer(
                     builder.Configuration.GetConnectionString("DefaultConnection"),
                     sqlOptions =>
                     {
-                        sqlOptions.MigrationsAssembly("APIs"); //  ÕœÌœ „‘—Ê⁄ «·ÂÃ—« 
+                        sqlOptions.MigrationsAssembly("APIs");
                         sqlOptions.EnableRetryOnFailure(
                             maxRetryCount: 5,
                             maxRetryDelay: TimeSpan.FromSeconds(30),
                             errorNumbersToAdd: null);
-                    }));
+                    });
+
+                //  Ã«Â·  Õ–Ì— «· €ÌÌ—«  ›Ì «·‰„Ê–Ã
+                options.ConfigureWarnings(warnings =>
+                    warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+            });
+
             //  ﬂÊÌ‰ JWT Authentication
             var jwtKey = builder.Configuration["Jwt:Key"]
                 ?? throw new InvalidOperationException("JWT Key is not configured");
@@ -73,67 +82,64 @@ namespace APIs
                 ?? throw new InvalidOperationException("JWT Issuer is not configured");
             var jwtAudience = builder.Configuration["Jwt:Audience"]
                 ?? throw new InvalidOperationException("JWT Audience is not configured");
+
             builder.Services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             })
-           .AddJwtBearer(options =>
-           {
-               options.TokenValidationParameters = new TokenValidationParameters
-               {
-                   ValidateIssuer = true,
-                   ValidateAudience = true,
-                   ValidateLifetime = true,
-                   ValidateIssuerSigningKey = true,
-                   ValidIssuer = jwtIssuer,
-                   ValidAudience = jwtAudience,
-                   IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-                   ClockSkew = TimeSpan.Zero
-               };
+            .AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+                    ValidIssuer = jwtIssuer,
+                    ValidAudience = jwtAudience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+                    ClockSkew = TimeSpan.Zero
+                };
 
-               options.Events = new JwtBearerEvents
-               {
-                   OnAuthenticationFailed = context =>
-                   {
-                       if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-                       {
-                           context.Response.Headers.Add("Token-Expired", "true");
-                       }
-                       return Task.CompletedTask;
-                   }
-               };
-           });
+                options.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =>
+                    {
+                        if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
+                        {
+                            // «” Œœ„ Append »œ·« „‰ Add
+                            context.Response.Headers.Append("Token-Expired", "true");
+                        }
+                        return Task.CompletedTask;
+                    }
+                };
+            });
 
             // Register Services
             builder.Services.AddScoped<IApplicationDbContext>(provider =>
                 provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
-            //builder.Services.AddSingleton<IRedisService, RedisService>();
             builder.Services.AddSingleton<ITokenService, TokenService>();
-            //builder.Services.AddHostedService<DequeueBackgroundService>();
 
             //  ﬂÊÌ‰ MediatR
+            var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");
             builder.Services.AddMediatR(cfg =>
             {
-                //cfg.RegisterServicesFromAssembly(typeof(Program).Assembly);
-                var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");
                 cfg.RegisterServicesFromAssembly(applicationAssembly);
-
-                // Or:
-                // cfg.RegisterServicesFromAssemblyContaining<MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup.SignupCommand>();
             });
 
             //  ”ÃÌ· FluentValidation
-            builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
+            builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
-            //  ”ÃÌ· Behaviors (Pipeline)
+            //  ”ÃÌ· Behaviors
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
             // ≈÷«›… Health Checks
             builder.Services.AddHealthChecks()
                 .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "api" });
+
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -148,13 +154,6 @@ namespace APIs
                     options.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
                                                      // options.RoutePrefix = string.Empty; // Set Swagger UI at root
                 });
-
-                // ≈‰‘«¡ ﬁ«⁄œ… «·»Ì«‰«  Ê ÿ»Ìﬁ migrations
-                using (var scope = app.Services.CreateScope())
-                {
-                    var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    dbContext.Database.EnsureCreatedAsync();
-                }
             }
 
             app.UseHttpsRedirection();
@@ -163,8 +162,15 @@ namespace APIs
 
             app.MapControllers();
 
+            // Health Check endpoints
+            app.MapHealthChecks("/health");
+            app.MapHealthChecks("/health/database", new HealthCheckOptions
+            {
+                Predicate = (check) => check.Tags.Contains("database")
+            });
+
             app.Run();
         }
     }
 }
-        
+
