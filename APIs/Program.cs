@@ -22,7 +22,6 @@ namespace APIs
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
             builder.Services.AddControllers()
                 .AddApplicationPart(typeof(MOJ.Modules.UserManagments.API.Controllers.UserManagmentController).Assembly);
 
@@ -118,13 +117,12 @@ namespace APIs
             });
 
             // Register Services
-            builder.Services.AddScoped<IApplicationDbContext>(provider =>
-                provider.GetRequiredService<ApplicationDbContext>());
+            builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
             builder.Services.AddSingleton<ITokenService, TokenService>();
             builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
 
-            //  яжнд MediatR
+            //  яжнд MediatR (Mediator Design Pattern)
             var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");
             builder.Services.AddMediatR(cfg =>
             {

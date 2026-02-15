@@ -77,7 +77,7 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
 
         public bool HasPermission(string permission)
         {
-            // يمكنك إضافة منطق التحقق من الصلاحيات هنا
+            // يمكن إضافة منطق التحقق من الصلاحيات هنا
             return Role != null && Role.IsActive;
         }
         // إضافة method لتغيير كلمة المرور
