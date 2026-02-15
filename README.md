@@ -15,7 +15,7 @@ https://github.com/keiloa-ise/MOG_APIs
     * cd APIs
     * dotnet restore
     * dotnet build
-    * Add-Migration InitialCreate -OutputDir "Infrastructure/Persistence/Migrations"
+    * Add-Migration MigrationName -OutputDir Data\Migrations -Context ApplicationDbContext
     * Update-Database
 
 ## Content
@@ -1091,7 +1091,7 @@ powershell
 
 \# Add new migration
 ```
-Add-Migration MigrationName \-OutputDir Data\\Migrations \-Context ApplicationDbContext
+Add-Migration MigrationName -OutputDir Data\Migrations -Context ApplicationDbContext
 ```
 \# Update database
 ```

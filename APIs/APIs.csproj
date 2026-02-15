@@ -8,6 +8,9 @@
 
 	<ItemGroup>
 		<!-- EF Core Packages -->
+		<PackageReference Include="Hangfire" Version="1.8.23" />
+		<PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
+		<PackageReference Include="Hangfire.SqlServer" Version="1.8.23" />
 		<PackageReference Include="MediatR" Version="14.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">

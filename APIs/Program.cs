@@ -1,4 +1,7 @@
+using APIs.Filters;
 using FluentValidation;
+using Hangfire;
+using Hangfire.SqlServer;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -7,6 +10,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using MOJ.Modules.UserManagments.Application.Behaviors;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
+using MOJ.Modules.UserManagments.Application.Common.Models;
 using MOJ.Modules.UserManagments.Application.Common.Services;
 using MOJ.Modules.UserManagments.Infrastructure.Persistence;
 using MOJ.Modules.UserManagments.Infrastructure.Services;
@@ -82,6 +86,9 @@ namespace APIs
                 ?? throw new InvalidOperationException("JWT Issuer is not configured");
             var jwtAudience = builder.Configuration["Jwt:Audience"]
                 ?? throw new InvalidOperationException("JWT Audience is not configured");
+            
+            // Add Email Settings
+            builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
             builder.Services.AddAuthentication(options =>
             {
@@ -121,6 +128,17 @@ namespace APIs
             builder.Services.AddTransient<IDateTime, DateTimeService>();
             builder.Services.AddSingleton<ITokenService, TokenService>();
             builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
+            builder.Services.AddScoped<ICleanupService, CleanupService>();
+            if (builder.Environment.IsDevelopment())
+            {
+                // «” Œœ«„ Œœ„… «· ’ÕÌÕ ›Ì »Ì∆… «· ÿÊÌ—
+                builder.Services.AddScoped<IEmailService, EmailServiceDebug>();
+            }
+            else
+            {
+                // «” Œœ«„ «·Œœ„… «·ÕﬁÌﬁÌ… ›Ì «·≈‰ «Ã
+                builder.Services.AddScoped<IEmailService, EmailService>();
+            }
 
             //  ﬂÊÌ‰ MediatR (Mediator Design Pattern)
             var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");
@@ -129,16 +147,33 @@ namespace APIs
                 cfg.RegisterServicesFromAssembly(applicationAssembly);
             });
 
-            //  ”ÃÌ· FluentValidation
+            // Register FluentValidation
             builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
-            //  ”ÃÌ· Behaviors
+            // Register Behaviors
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
 
-            // ≈÷«›… Health Checks
+            // Add Health Checks
             builder.Services.AddHealthChecks()
                 .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "api" });
+
+            // Add Hangfire
+            builder.Services.AddHangfire(configuration => configuration
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UseSqlServerStorage(builder.Configuration.GetConnectionString("HangfireConnection"), new SqlServerStorageOptions
+                {
+                    CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
+                    SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
+                    QueuePollInterval = TimeSpan.Zero, // For preview, it's best to set a short value like Zero, but use TimeSpan.FromSeconds(15) for production to reduce database compression.
+                    UseRecommendedIsolationLevel = true,
+                    DisableGlobalLocks = true
+                }));
+
+            // Added Hangfire server for task processing
+            builder.Services.AddHangfireServer();
 
             var app = builder.Build();
 
@@ -158,6 +193,8 @@ namespace APIs
 
             app.UseHttpsRedirection();
 
+            app.UseAuthentication();
+
             app.UseAuthorization();
 
             app.MapControllers();
@@ -168,6 +205,28 @@ namespace APIs
             {
                 Predicate = (check) => check.Tags.Contains("database")
             });
+
+            // add Hangfire Dashboard
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                // Õ„«Ì… »”Ìÿ… ··„⁄«Ì‰… - ÌÃ»  €ÌÌ—Â« ›Ì «·≈‰ «Ã
+                Authorization = new[] { new HangfireAuthorizationFilter() }
+            });
+
+            RecurringJob.AddOrUpdate<ICleanupService>(
+                "clean-expired-sessions",
+                service => service.CleanExpiredSessions(),
+                Cron.Daily(2)); // ﬂ· ÌÊ„ ›Ì «·”«⁄… 2 ’»«Õ«
+
+            RecurringJob.AddOrUpdate<ICleanupService>(
+                "clean-old-password-histories",
+                service => service.CleanOldPasswordHistories(5),
+                Cron.Weekly(DayOfWeek.Sunday, 3)); // ﬂ· ÌÊ„ √Õœ ›Ì «·”«⁄… 3 ’»«Õ«
+
+            RecurringJob.AddOrUpdate<ICleanupService>(
+                "clean-old-audit-logs",
+                service => service.CleanOldAuditLogs(30),
+                Cron.Monthly()); // ﬂ· ‘Â—
 
             app.Run();
         }

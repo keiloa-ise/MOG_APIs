@@ -1,4 +1,5 @@
 ﻿using BCrypt.Net;
+using Hangfire;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -6,23 +7,27 @@ using MOJ.Modules.UserManagments.Application.Common.Interfaces;
 using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
 using MOJ.Modules.UserManagments.Domain.Entities;
 using MOJ.Shared.Application.DTOs;
+using NETCore.MailKit.Core;
 
 namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
 {
     public class SignupCommandHandler : IRequestHandler<SignupCommand, ApiResponse<UserSignupResponse>>
     {
         private readonly IApplicationDbContext _context;
+        private readonly IBackgroundJobClient _backgroundJobClient; // حقن Hangfire
         private readonly ILogger<SignupCommandHandler> _logger;
         private readonly IDateTime _dateTime;
 
         public SignupCommandHandler(
             IApplicationDbContext context,
             ILogger<SignupCommandHandler> logger,
-            IDateTime dateTime)
+            IDateTime dateTime, 
+            IBackgroundJobClient backgroundJobClient)
         {
             _context = context;
             _logger = logger;
             _dateTime = dateTime;
+            _backgroundJobClient = backgroundJobClient;
         }
 
         public async Task<ApiResponse<UserSignupResponse>> Handle(
@@ -94,6 +99,14 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
                     CreatedAt = user.CreatedAt,
                     Message = "User registered successfully"
                 };
+
+                // جدولة مهمة فورية لإرسال إيميل ترحيبي
+                _backgroundJobClient.Enqueue<Common.Interfaces.IEmailService>(emailService =>
+                    emailService.SendWelcomeEmail(user.Email, user.FullName));
+
+                // جدولة مهمة مؤجلة لإرسال إيميل متابعة بعد 3 أيام
+                _backgroundJobClient.Schedule<Common.Interfaces.IEmailService>(emailService =>
+                    emailService.SendFollowUpEmail(user.Email), TimeSpan.FromDays(3));
 
                 return ApiResponse<UserSignupResponse>.Success(response, "User registered successfully");
             }
