@@ -15,6 +15,8 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public string FullName { get; set; }
         public string PhoneNumber { get; set; }
         public int RoleId { get; set; } = 3; // Default to "User" role (Id = 3)
+        public List<int> DepartmentIds { get; set; } = new();
+        public int? PrimaryDepartmentId { get; set; }
     }
 
     public class UserSignupResponse
@@ -27,6 +29,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.DTOs
         public int RoleId { get; set; } 
         public DateTime CreatedAt { get; set; }
         public string Message { get; set; }
+        public List<UserDepartmentDto> Departments { get; set; } = new();
     }
 
     public class CheckAvailabilityRequest

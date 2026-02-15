@@ -12,6 +12,8 @@ namespace MOJ.Modules.UserManagments.Infrastructure.Persistence
         public DbSet<UserRoleChangeLog> UserRoleChangeLogs { get; set; }
         public DbSet<PasswordChangeLog> PasswordChangeLogs { get; set; }
         public DbSet<PasswordHistory> PasswordHistories { get; set; }
+        public DbSet<Department> Departments { get; set; }
+        public DbSet<UserDepartment> UserDepartments { get; set; }
         public DbContext DbContext => this;
 
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
@@ -117,6 +119,98 @@ namespace MOJ.Modules.UserManagments.Infrastructure.Persistence
                     new Role(6, Role.DefaultRoles.Viewer, "Content Viewer")
                 );
             });
+            // Department Configuration
+            modelBuilder.Entity<Department>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasIndex(d => d.Code)
+                    .IsUnique()
+                    .HasDatabaseName("IX_Departments_Code");
+
+                entity.HasIndex(d => d.Name)
+                    .HasDatabaseName("IX_Departments_Name");
+
+                entity.Property(d => d.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()")
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(d => d.UpdatedAt)
+                    .ValueGeneratedOnUpdate()
+                    .IsRequired(false);
+
+                entity.Property(d => d.Name)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(d => d.NameAr)
+                    .IsRequired()
+                    .HasMaxLength(100);
+
+                entity.Property(d => d.Code)
+                    .IsRequired()
+                    .HasMaxLength(20);
+
+                entity.Property(d => d.Description)
+                    .HasMaxLength(500)
+                    .IsRequired(false);
+
+                entity.Property(d => d.IsActive)
+                    .HasDefaultValue(true);
+
+                // Self-referencing relationship for Parent/Child departments
+                entity.HasOne(d => d.ParentDepartment)
+                    .WithMany(d => d.ChildDepartments)
+                    .HasForeignKey(d => d.ParentDepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict)
+                    .IsRequired(false);
+
+            });
+
+            // UserDepartment Configuration 
+            modelBuilder.Entity<UserDepartment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+
+                entity.HasIndex(ud => new { ud.UserId, ud.DepartmentId })
+                    .IsUnique()
+                    .HasDatabaseName("IX_UserDepartments_User_Department");
+
+                entity.HasIndex(ud => ud.UserId)
+                    .HasDatabaseName("IX_UserDepartments_UserId");
+
+                entity.HasIndex(ud => ud.DepartmentId)
+                    .HasDatabaseName("IX_UserDepartments_DepartmentId");
+
+                entity.Property(ud => ud.CreatedAt)
+                    .HasDefaultValueSql("GETUTCDATE()")
+                    .ValueGeneratedOnAdd();
+
+                entity.Property(ud => ud.AssignedAt)
+                    .HasDefaultValueSql("GETUTCDATE()");
+
+                entity.Property(ud => ud.IsPrimary)
+                    .HasDefaultValue(false);
+
+                // علاقة مع User
+                entity.HasOne(ud => ud.User)
+                    .WithMany(u => u.UserDepartments)
+                    .HasForeignKey(ud => ud.UserId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
+                // علاقة مع Department
+                entity.HasOne(ud => ud.Department)
+                    .WithMany(d => d.UserDepartments)
+                    .HasForeignKey(ud => ud.DepartmentId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                // علاقة مع AssignedByUser
+                entity.HasOne(ud => ud.AssignedByUser)
+                    .WithMany()
+                    .HasForeignKey(ud => ud.AssignedByUserId)
+                    .OnDelete(DeleteBehavior.Restrict);
+            });
+
             // UserRoleChangeLog Configuration
             modelBuilder.Entity<UserRoleChangeLog>(entity =>
             {

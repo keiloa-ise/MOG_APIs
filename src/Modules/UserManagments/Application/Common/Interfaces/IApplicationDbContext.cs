@@ -12,6 +12,8 @@ namespace MOJ.Modules.UserManagments.Application.Common.Interfaces
     {
         DbSet<AppUser> AppUsers { get; }
         DbSet<Role> Roles { get; }
+        DbSet<Department> Departments { get; } 
+        DbSet<UserDepartment> UserDepartments { get; } 
         DbSet<UserRoleChangeLog> UserRoleChangeLogs { get; }
         DbSet<PasswordChangeLog> PasswordChangeLogs { get; }
         DbSet<PasswordHistory> PasswordHistories { get; }

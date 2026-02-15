@@ -26,19 +26,6 @@ namespace MOJ.Modules.UserManagments.Infrastructure.Services
             {
                 _logger.LogInformation("Starting cleanup of expired sessions at {Time}", _dateTime.UtcNow);
 
-                // تنظيف رموز التحديث (Refresh Tokens) المنتهية الصلاحية
-                // إذا كان لديك جدول للـ RefreshTokens
-                // var expiredTokens = await _context.RefreshTokens
-                //     .Where(t => t.ExpiryDate < _dateTime.UtcNow)
-                //     .ToListAsync();
-                // 
-                // if (expiredTokens.Any())
-                // {
-                //     _context.RefreshTokens.RemoveRange(expiredTokens);
-                //     await _context.SaveChangesAsync();
-                //     _logger.LogInformation("Removed {Count} expired refresh tokens", expiredTokens.Count);
-                // }
-
                 // تنظيف سجلات تغيير كلمة المرور القديمة
                 var oldPasswordChanges = await _context.PasswordChangeLogs
                     .Where(p => p.CreatedAt < _dateTime.UtcNow.AddMonths(-6))

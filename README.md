@@ -39,6 +39,8 @@ https://github.com/keiloa-ise/MOG_APIs
     -   Authentication Endpoints
         
     -   User Management Endpoints
+      
+    -   User Departments Endpoints
         
     -   Role Management Endpoints
         
@@ -523,6 +525,18 @@ json
 ```
 Response: Same as Change User Role endpoint
 
+* * *
+## 2\. 👥 User Departments Endpoints
+
+|Method	|Endpoint	|Description|
+| ------------- |:-------------:|:-------------:|
+GET | /api/users/{userId}/departments | Get user's departments
+POST | /api/users/{userId}/departments/assign | Assign new departments (replace)
+PUT | /api/users/{userId}/departments/update | Update departments (add/delete)
+DELETE | /api/users/{userId}/departments/clear | Delete all departments
+PATCH | /api/users/{userId}/departments/set-primary/{departmentId} | Set a primary department
+GET | /api/users/{userId}/departments/check/{departmentId} | Check if a user is in a department
+GET | /api/users/{userId}/departments/stats | Department statistics
 * * *
 
 ## 3\. 🏛️ Role Management Endpoints

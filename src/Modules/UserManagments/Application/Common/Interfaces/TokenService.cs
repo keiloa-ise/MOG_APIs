@@ -1,4 +1,5 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
@@ -15,30 +16,51 @@ namespace MOJ.Modules.UserManagments.Application.Common.Interfaces
 {
     public class TokenService : ITokenService
     {
+        private readonly IApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly SymmetricSecurityKey _key;
         private readonly RandomNumberGenerator _rng;
 
-        public TokenService(IConfiguration configuration)
+        public TokenService(IConfiguration configuration, IApplicationDbContext context)
         {
             _configuration = configuration;
             _key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _configuration["Jwt:Key"] ?? throw new InvalidOperationException("JWT Key is not configured")));
             _rng = RandomNumberGenerator.Create();
+            _context = context;
         }
-
-        public TokenResponse GenerateTokens(int userId, string username, string email, string roleName)
+        public async Task<TokenResponse> GenerateTokens(int userId, string username, string email, string roleName)
         {
-            var claims = new[]
+            // جلب أقسام المستخدم
+            var userDepartments = await _context.UserDepartments
+                .Include(ud => ud.Department)
+                .Where(ud => ud.UserId == userId)
+                .ToListAsync();
+
+            var claims = new List<Claim>
             {
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub, userId.ToString()),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.UniqueName, username),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Email, email),
-                new Claim(ClaimTypes.Role, roleName), 
+                new Claim(ClaimTypes.Role, roleName),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
                 new Claim(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Iat, DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(), ClaimValueTypes.Integer64)
             };
+            // إضافة الأقسام كـ Claims متعددة
+            foreach (var ud in userDepartments)
+            {
+                claims.Add(new Claim("Department", ud.Department.Code));
+                claims.Add(new Claim("DepartmentId", ud.DepartmentId.ToString()));
 
+                if (ud.IsPrimary)
+                {
+                    claims.Add(new Claim("PrimaryDepartment", ud.Department.Code));
+                    claims.Add(new Claim("PrimaryDepartmentId", ud.DepartmentId.ToString()));
+                }
+            }
+
+            // إضافة عدد الأقسام
+            claims.Add(new Claim("DepartmentsCount", userDepartments.Count.ToString()));
             var credentials = new SigningCredentials(_key, SecurityAlgorithms.HmacSha256);
 
             var expires = DateTime.UtcNow.AddMinutes(double.Parse(

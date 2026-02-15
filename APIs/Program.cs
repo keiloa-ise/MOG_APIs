@@ -2,6 +2,7 @@ using APIs.Filters;
 using FluentValidation;
 using Hangfire;
 using Hangfire.SqlServer;
+using MailKit.Search;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -126,7 +127,7 @@ namespace APIs
             // Register Services
             builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
-            builder.Services.AddSingleton<ITokenService, TokenService>();
+            builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
             builder.Services.AddScoped<ICleanupService, CleanupService>();
             if (builder.Environment.IsDevelopment())
@@ -212,7 +213,15 @@ namespace APIs
                 // Õ„«Ì… »”Ìÿ… ··„⁄«Ì‰… - ÌÃ»  €ÌÌ—Â« ›Ì «·≈‰ «Ã
                 Authorization = new[] { new HangfireAuthorizationFilter() }
             });
+            // 1. „Â„… ›Ê—Ì… (Fire-and-Forget)
+            BackgroundJob.Enqueue(() => Console.WriteLine("Hangfire/Fire-and-Forget job"))
+                ;
+            // 2. „Â„… „ƒÃ·… (Delayed)
+            BackgroundJob.Schedule(
+                () => Console.WriteLine("Hangfire/Delayed job"),
+                TimeSpan.FromDays(7));
 
+            // 3. „Â„… „ ﬂ——… (Recurring)
             RecurringJob.AddOrUpdate<ICleanupService>(
                 "clean-expired-sessions",
                 service => service.CleanExpiredSessions(),
@@ -227,6 +236,11 @@ namespace APIs
                 "clean-old-audit-logs",
                 service => service.CleanOldAuditLogs(30),
                 Cron.Monthly()); // ﬂ· ‘Â—
+
+            // 4. „Â„… „ ”·”·… (Continuations)
+            var jobId = BackgroundJob.Enqueue(() => Console.WriteLine("Hangfire/Continuations ValidateOrder"));
+            BackgroundJob.ContinueJobWith(jobId, () => Console.WriteLine("Hangfire/Continuations ProcessPayment"));
+            BackgroundJob.ContinueJobWith(jobId, () => Console.WriteLine("Hangfire/Continuations SendConfirmation"));
 
             app.Run();
         }

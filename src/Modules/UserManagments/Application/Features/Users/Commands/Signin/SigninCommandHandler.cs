@@ -90,7 +90,7 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signin
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // Create tokens with Role
-                var tokens = _tokenService.GenerateTokens(
+                var tokens = await _tokenService.GenerateTokens(
                     user.Id,
                     user.Username,
                     user.Email,

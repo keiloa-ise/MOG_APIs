@@ -23,7 +23,7 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
 
         // Navigation Property
         public Role Role { get; private set; }
-
+        public ICollection<UserDepartment> UserDepartments { get; private set; } = new List<UserDepartment>();
         private AppUser() { } // For EF Core
 
         public AppUser(
@@ -85,6 +85,20 @@ namespace MOJ.Modules.UserManagments.Domain.Entities
         {
             PasswordHash = newPasswordHash;
             UpdatedAt = DateTime.UtcNow;
+        }
+        public bool HasDepartment(int departmentId)
+        {
+            return UserDepartments?.Any(ud => ud.DepartmentId == departmentId) ?? false;
+        }
+
+        public bool IsInDepartment(string departmentCode)
+        {
+            return UserDepartments?.Any(ud => ud.Department.Code == departmentCode) ?? false;
+        }
+
+        public int? GetPrimaryDepartmentId()
+        {
+            return UserDepartments?.FirstOrDefault(ud => ud.IsPrimary)?.DepartmentId;
         }
     }
 }

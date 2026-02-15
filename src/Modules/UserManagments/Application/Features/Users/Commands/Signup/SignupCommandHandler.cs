@@ -8,6 +8,7 @@ using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
 using MOJ.Modules.UserManagments.Domain.Entities;
 using MOJ.Shared.Application.DTOs;
 using NETCore.MailKit.Core;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory.Database;
 
 namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
 {
@@ -87,6 +88,26 @@ namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.Signup
 
                 _logger.LogInformation("User registered successfully: {Email} with role {RoleName}",
                     request.Request.Email, role?.Name);
+
+                // إضافة الأقسام للمستخدم (إذا تم تحديدها)
+                if (request.Request.DepartmentIds?.Any() == true)
+                {
+                    var departments = await _context.Departments
+                        .Where(d => request.Request.DepartmentIds.Contains(d.Id) && d.IsActive)
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var dept in departments)
+                    {
+                        var userDepartment = new UserDepartment(
+                            user.Id,
+                            dept.Id,
+                            user.Id, // المستخدم نفسه هو من أضاف نفسه
+                            isPrimary: dept.Id == request.Request.PrimaryDepartmentId
+                        );
+                        await _context.UserDepartments.AddAsync(userDepartment, cancellationToken);
+                    }
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
 
                 var response = new UserSignupResponse
                 {

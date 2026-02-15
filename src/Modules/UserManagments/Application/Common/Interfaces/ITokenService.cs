@@ -10,7 +10,7 @@ namespace MOJ.Modules.UserManagments.Application.Common.Interfaces
 {
     public interface ITokenService
     {
-        TokenResponse GenerateTokens(int userId, string username, string email, string role);
+        Task<TokenResponse> GenerateTokens(int userId, string username, string email, string roleName);
         ClaimsPrincipal GetPrincipalFromExpiredToken(string token);
         string GenerateRefreshToken();
         bool ValidateRefreshToken(string refreshToken);
