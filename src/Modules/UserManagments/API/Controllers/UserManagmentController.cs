@@ -13,14 +13,8 @@ using MOJ.Modules.UserManagments.Application.Features.Users.Queries.GetUserProfi
 using MOJ.Modules.UserManagments.Application.Features.Users.Queries.GetUserRoleHistory;
 using MOJ.Shared.Application;
 using MOJ.Shared.Application.DTOs;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Security.Claims;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MOJ.Modules.UserManagments.API.Controllers
 {

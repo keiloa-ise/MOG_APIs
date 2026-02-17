@@ -234,7 +234,7 @@ namespace APIs
             builder.Services.AddScoped<IApplicationDbContext>(provider =>
                 provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
-            builder.Services.AddScoped<ITokenService, TokenService>();
+            builder.Services.AddScoped<ITokenService, MOJ.Modules.UserManagments.Infrastructure.Services.TokenService>();
             builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
             builder.Services.AddScoped<ICleanupService, CleanupService>();
 

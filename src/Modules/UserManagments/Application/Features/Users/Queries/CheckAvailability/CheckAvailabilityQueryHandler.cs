@@ -3,11 +3,6 @@ using Microsoft.Extensions.Logging;
 using MOJ.Modules.UserManagments.Application.Features.Users.DTOs;
 using MOJ.Modules.UserManagments.Application.Features.Users.Queries.CheckAvailability;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using MOJ.Shared.Application.DTOs;
 

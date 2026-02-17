@@ -4,11 +4,6 @@ using Microsoft.Extensions.Logging;
 using MOJ.Modules.UserManagments.Application.Common.Interfaces;
 using MOJ.Modules.UserManagments.Domain.Entities;
 using MOJ.Shared.Application.DTOs;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace MOJ.Modules.UserManagments.Application.Features.Users.Commands.ChangeUserRole
 {
