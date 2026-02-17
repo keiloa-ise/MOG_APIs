@@ -1,4 +1,4 @@
-﻿# MOG_Solution 'User Management API Documentation'
+﻿# MOJ_Solution 'User Management API Documentation'
 
 ### Repoditory
 https://github.com/keiloa-ise/MOG_APIs
@@ -8,8 +8,12 @@ https://github.com/keiloa-ise/MOG_APIs
 - .NET 9.0 SDK or newer
 - SQL Server 
 
-### Installation
+### Verify Installation:
 1. Clone the repo
+     ```
+    git clone https://github.com/your-repo/MOG_Solution.git
+    cd MOG_Solution
+    ```
 2. Update connection strings in `appsettings.json`
 3. Migrations (Package Manager Console):
     * cd APIs

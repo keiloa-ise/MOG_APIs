@@ -30,7 +30,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous] // السماح للجميع برؤية الأدوار المتاحة
+        [AllowAnonymous] 
         [ProducesResponseType(typeof(ApiResponse<List<RoleDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllRoles([FromQuery] bool? isActive = null)
         {
@@ -52,6 +52,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
         }
 
         [HttpGet("available")]
+        [Authorize(Policy = "ITDepartment")] // ✅ فقط موظفي IT يمكنهم الوصول
         [ProducesResponseType(typeof(ApiResponse<List<RoleDto>>), StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAvailableRoles()
         {

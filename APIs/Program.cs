@@ -1,8 +1,8 @@
-using APIs.Filters;
+ï»¿using APIs.Filters;
+using APIs.Jobs;
 using FluentValidation;
 using Hangfire;
 using Hangfire.SqlServer;
-using MailKit.Search;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -15,7 +15,6 @@ using MOJ.Modules.UserManagments.Application.Common.Models;
 using MOJ.Modules.UserManagments.Application.Common.Services;
 using MOJ.Modules.UserManagments.Infrastructure.Persistence;
 using MOJ.Modules.UserManagments.Infrastructure.Services;
-using System.Net;
 using System.Reflection;
 using System.Text;
 
@@ -27,16 +26,68 @@ namespace APIs
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            // ============================
+            // 1. Ø¥Ø¶Ø§ÙØ© Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©
+            // ============================
+            ConfigureBasicServices(builder);
+
+            // ============================
+            // 2. ØªÙƒÙˆÙŠÙ† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
+            // ============================
+            ConfigureDatabase(builder);
+
+            // ============================
+            // 3. ØªÙƒÙˆÙŠÙ† JWT Authentication
+            // ============================
+            ConfigureJwtAuthentication(builder);
+
+            // ============================
+            // 4. ØªÙƒÙˆÙŠÙ† Authorization Policies (âœ… Ù‡Ù†Ø§ Ù‚Ø¨Ù„ Build)
+            // ============================
+            ConfigureAuthorizationPolicies(builder);
+
+            // ============================
+            // 5. ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ©
+            // ============================
+            RegisterCustomServices(builder);
+
+            // ============================
+            // 6. ØªÙƒÙˆÙŠÙ† MediatR Ùˆ FluentValidation
+            // ============================
+            ConfigureMediatRAndValidation(builder);
+
+            // ============================
+            // 7. ØªÙƒÙˆÙŠÙ† Health Checks
+            // ============================
+            ConfigureHealthChecks(builder);
+
+            // ============================
+            // 8. ØªÙƒÙˆÙŠÙ† Hangfire
+            // ============================
+            ConfigureHangfire(builder);
+
+            var app = builder.Build();
+
+            // ============================
+            // 9. ØªÙƒÙˆÙŠÙ† Pipeline
+            // ============================
+            ConfigurePipeline(app);
+
+            app.Run();
+        }
+
+        // =====================================================================
+        // 1. Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©
+        // =====================================================================
+        private static void ConfigureBasicServices(WebApplicationBuilder builder)
+        {
             builder.Services.AddControllers()
                 .AddApplicationPart(typeof(MOJ.Modules.UserManagments.API.Controllers.UserManagmentController).Assembly);
 
-            // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
             builder.Services.AddOpenApi();
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen(options =>
             {
-                // ÅÖÇİÉ JWT Authentication İí Swagger
                 options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
                 {
                     Description = "JWT Authorization header using the Bearer scheme. Example: \"Bearer {token}\"",
@@ -62,7 +113,15 @@ namespace APIs
                 });
             });
 
-            // Êßæíä ŞÇÚÏÉ ÇáÈíÇäÇÊ ãÚ ÊÌÇåá ÇáÊÍĞíÑÇÊ
+            // HttpContext Accessor Ù„Ù„ÙˆØµÙˆÙ„ Ø¥Ù„Ù‰ HttpContext ÙÙŠ Ø§Ù„Ø®Ø¯Ù…Ø§Øª
+            builder.Services.AddHttpContextAccessor();
+        }
+
+        // =====================================================================
+        // 2. ØªÙƒÙˆÙŠÙ† Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
+        // =====================================================================
+        private static void ConfigureDatabase(WebApplicationBuilder builder)
+        {
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
             {
                 options.UseSqlServer(
@@ -76,20 +135,24 @@ namespace APIs
                             errorNumbersToAdd: null);
                     });
 
-                // ÊÌÇåá ÊÍĞíÑ ÇáÊÛííÑÇÊ İí ÇáäãæĞÌ
                 options.ConfigureWarnings(warnings =>
                     warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
             });
+        }
 
-            // Êßæíä JWT Authentication
+        // =====================================================================
+        // 3. ØªÙƒÙˆÙŠÙ† JWT Authentication
+        // =====================================================================
+        private static void ConfigureJwtAuthentication(WebApplicationBuilder builder)
+        {
             var jwtKey = builder.Configuration["Jwt:Key"]
                 ?? throw new InvalidOperationException("JWT Key is not configured");
             var jwtIssuer = builder.Configuration["Jwt:Issuer"]
                 ?? throw new InvalidOperationException("JWT Issuer is not configured");
             var jwtAudience = builder.Configuration["Jwt:Audience"]
                 ?? throw new InvalidOperationException("JWT Audience is not configured");
-            
-            // Add Email Settings
+
+            // Email Settings
             builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 
             builder.Services.AddAuthentication(options =>
@@ -117,50 +180,108 @@ namespace APIs
                     {
                         if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
                         {
-                            // ÇÓÊÎÏã Append ÈÏáÇğ ãä Add
                             context.Response.Headers.Append("Token-Expired", "true");
                         }
                         return Task.CompletedTask;
                     }
                 };
             });
+        }
 
-            // Register Services
-            builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+        // =====================================================================
+        // 4. ØªÙƒÙˆÙŠÙ† Authorization Policies ( Ù‡Ù†Ø§ Ù‚Ø¨Ù„ Build)
+        // =====================================================================
+        private static void ConfigureAuthorizationPolicies(WebApplicationBuilder builder)
+        {
+            builder.Services.AddAuthorization(options =>
+            {
+                // âœ… Policy: Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙÙŠ Ù‚Ø³Ù… IT
+                options.AddPolicy("ITDepartment", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == "Department" && c.Value == "IT")
+                    ));
+
+                // âœ… Policy: Admin ÙÙŠ Ù‚Ø³Ù… IT
+                options.AddPolicy("ITAdmin", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == "Department" && c.Value == "IT")  &&
+                        context.User.IsInRole("Admin")
+                    ));
+
+                // âœ… Policy: Ø£ÙŠ Ù…Ø³ØªØ®Ø¯Ù… Ù„Ø¯ÙŠÙ‡ Ù‚Ø³Ù…
+                options.AddPolicy("DepartmentOnly", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == "Department") 
+                    ));
+
+                // âœ… Policy: Ù„Ù„Ù€ SuperAdmin ÙÙ‚Ø·
+                options.AddPolicy("SuperAdminOnly", policy =>
+                    policy.RequireRole("SuperAdmin"));
+
+                // âœ… Policy: Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ† Ø§Ù„Ù†Ø´Ø·ÙŠÙ† ÙÙ‚Ø·
+                options.AddPolicy("ActiveUsers", policy =>
+                    policy.RequireAssertion(context =>
+                        context.User.HasClaim(c => c.Type == "IsActive" && c.Value == "true")
+                    ));
+            });
+        }
+
+        // =====================================================================
+        // 5. ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ù…Ø®ØµØµØ©
+        // =====================================================================
+        private static void RegisterCustomServices(WebApplicationBuilder builder)
+        {
+            builder.Services.AddScoped<IApplicationDbContext>(provider =>
+                provider.GetRequiredService<ApplicationDbContext>());
             builder.Services.AddTransient<IDateTime, DateTimeService>();
             builder.Services.AddScoped<ITokenService, TokenService>();
             builder.Services.AddScoped<IPasswordPolicyService, PasswordPolicyService>();
             builder.Services.AddScoped<ICleanupService, CleanupService>();
+
+            // Email Service
             if (builder.Environment.IsDevelopment())
             {
-                // ÇÓÊÎÏÇã ÎÏãÉ ÇáÊÕÍíÍ İí ÈíÆÉ ÇáÊØæíÑ
                 builder.Services.AddScoped<IEmailService, EmailServiceDebug>();
             }
             else
             {
-                // ÇÓÊÎÏÇã ÇáÎÏãÉ ÇáÍŞíŞíÉ İí ÇáÅäÊÇÌ
                 builder.Services.AddScoped<IEmailService, EmailService>();
             }
+        }
 
-            // Êßæíä MediatR (Mediator Design Pattern)
+        // =====================================================================
+        // 6. ØªÙƒÙˆÙŠÙ† MediatR Ùˆ FluentValidation
+        // =====================================================================
+        private static void ConfigureMediatRAndValidation(WebApplicationBuilder builder)
+        {
             var applicationAssembly = Assembly.Load("MOJ.Modules.UserManagments.Application");
+
             builder.Services.AddMediatR(cfg =>
             {
                 cfg.RegisterServicesFromAssembly(applicationAssembly);
             });
 
-            // Register FluentValidation
             builder.Services.AddValidatorsFromAssembly(applicationAssembly);
 
-            // Register Behaviors
+            // Behaviors
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
             builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+        }
 
-            // Add Health Checks
+        // =====================================================================
+        // 7. ØªÙƒÙˆÙŠÙ† Health Checks
+        // =====================================================================
+        private static void ConfigureHealthChecks(WebApplicationBuilder builder)
+        {
             builder.Services.AddHealthChecks()
                 .AddCheck("self", () => HealthCheckResult.Healthy(), tags: new[] { "api" });
+        }
 
-            // Add Hangfire
+        // =====================================================================
+        // 8. ØªÙƒÙˆÙŠÙ† Hangfire
+        // =====================================================================
+        private static void ConfigureHangfire(WebApplicationBuilder builder)
+        {
             builder.Services.AddHangfire(configuration => configuration
                 .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
                 .UseSimpleAssemblyNameTypeSerializer()
@@ -169,36 +290,33 @@ namespace APIs
                 {
                     CommandBatchMaxTimeout = TimeSpan.FromMinutes(5),
                     SlidingInvisibilityTimeout = TimeSpan.FromMinutes(5),
-                    QueuePollInterval = TimeSpan.Zero, // For preview, it's best to set a short value like Zero, but use TimeSpan.FromSeconds(15) for production to reduce database compression.
+                    QueuePollInterval = TimeSpan.Zero,
                     UseRecommendedIsolationLevel = true,
                     DisableGlobalLocks = true
                 }));
 
-            // Added Hangfire server for task processing
             builder.Services.AddHangfireServer();
+        }
 
-            var app = builder.Build();
-
-            // Configure the HTTP request pipeline.
+        // =====================================================================
+        // 9. ØªÙƒÙˆÙŠÙ† Pipeline
+        // =====================================================================
+        private static void ConfigurePipeline(WebApplication app)
+        {
             if (app.Environment.IsDevelopment())
             {
                 app.MapOpenApi();
-                // Add Swagger middleware
                 app.UseSwagger();
                 app.UseSwaggerUI(options =>
                 {
                     options.SwaggerEndpoint("/swagger/v1/swagger.json", "MOJ APIs v1");
-                    options.RoutePrefix = "swagger"; // Set Swagger UI at /swagger
-                                                     // options.RoutePrefix = string.Empty; // Set Swagger UI at root
+                    options.RoutePrefix = "swagger";
                 });
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication();
-
             app.UseAuthorization();
-
             app.MapControllers();
 
             // Health Check endpoints
@@ -208,43 +326,15 @@ namespace APIs
                 Predicate = (check) => check.Tags.Contains("database")
             });
 
-            // add Hangfire Dashboard
+            // Hangfire Dashboard
             app.UseHangfireDashboard("/hangfire", new DashboardOptions
             {
-                // ÍãÇíÉ ÈÓíØÉ ááãÚÇíäÉ - íÌÈ ÊÛííÑåÇ İí ÇáÅäÊÇÌ
                 Authorization = new[] { new HangfireAuthorizationFilter() }
             });
-            // 1. ãåãÉ İæÑíÉ (Fire-and-Forget)
-            BackgroundJob.Enqueue(() => Console.WriteLine("Hangfire/Fire-and-Forget job"))
-                ;
-            // 2. ãåãÉ ãÄÌáÉ (Delayed)
-            BackgroundJob.Schedule(
-                () => Console.WriteLine("Hangfire/Delayed job"),
-                TimeSpan.FromDays(7));
 
-            // 3. ãåãÉ ãÊßÑÑÉ (Recurring)
-            RecurringJob.AddOrUpdate<ICleanupService>(
-                "clean-expired-sessions",
-                service => service.CleanExpiredSessions(),
-                Cron.Daily(2)); // ßá íæã İí ÇáÓÇÚÉ 2 ÕÈÇÍğÇ
-
-            RecurringJob.AddOrUpdate<ICleanupService>(
-                "clean-old-password-histories",
-                service => service.CleanOldPasswordHistories(5),
-                Cron.Weekly(DayOfWeek.Sunday, 3)); // ßá íæã ÃÍÏ İí ÇáÓÇÚÉ 3 ÕÈÇÍğÇ
-
-            RecurringJob.AddOrUpdate<ICleanupService>(
-                "clean-old-audit-logs",
-                service => service.CleanOldAuditLogs(30),
-                Cron.Monthly()); // ßá ÔåÑ
-
-            // 4. ãåãÉ ãÊÓáÓáÉ (Continuations)
-            var jobId = BackgroundJob.Enqueue(() => Console.WriteLine("Hangfire/Continuations ValidateOrder"));
-            BackgroundJob.ContinueJobWith(jobId, () => Console.WriteLine("Hangfire/Continuations ProcessPayment"));
-            BackgroundJob.ContinueJobWith(jobId, () => Console.WriteLine("Hangfire/Continuations SendConfirmation"));
-
-            app.Run();
+            // Configure Hangfire Jobs
+            HangfireJobs.ConfigureRecurringJobs();
+            HangfireJobs.EnqueueExampleJobs();
         }
     }
 }
-

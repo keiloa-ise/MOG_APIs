@@ -1,4 +1,5 @@
 using Hangfire.Dashboard;
+using System.Security.Claims;
 
 namespace APIs.Filters
 {
@@ -8,6 +9,13 @@ namespace APIs.Filters
         {
             var httpContext = context.GetHttpContext();
 
+            ////  : «· Õﬁﬁ „‰ Claim «·‹ Email √Ê √Ì Claim ¬Œ—
+            //var emailClaim = httpContext.User.FindFirst(ClaimTypes.Email)?.Value;
+            //if (emailClaim == "asd@example.com") // ≈–« ﬂ«‰ «·»—Ìœ «·≈·ﬂ —Ê‰Ì
+            //{
+            //    return true;
+            //}
+
             // ›Ì »Ì∆… «· ÿÊÌ—° «”„Õ »«·œŒÊ· „Õ·Ì« ›ﬁÿ
             if (httpContext.Request.Host.Host == "localhost")
                 return true;
@@ -15,6 +23,8 @@ namespace APIs.Filters
             // ›Ì «·≈‰ «Ã°  Õﬁﬁ „‰ √‰ «·„” Œœ„ „”Ã· œŒÊ·Â Ê·œÌÂ ’·«ÕÌ… Admin
             return httpContext.User.Identity?.IsAuthenticated == true &&
                    httpContext.User.IsInRole("Admin"); // √Ê SuperAdmin
+
+
         }
     }
 }

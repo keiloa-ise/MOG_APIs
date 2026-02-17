@@ -779,7 +779,7 @@
   "variable": [
     {
       "key": "base_url",
-      "value": "https://localhost:7289",
+      "value": "http://192.168.60.113:5266",
       "description": "Base URL for the API (change port as needed)"
     },
     {
