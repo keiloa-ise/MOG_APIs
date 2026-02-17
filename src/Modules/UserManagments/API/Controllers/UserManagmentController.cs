@@ -24,7 +24,7 @@ using System.Threading.Tasks;
 
 namespace MOJ.Modules.UserManagments.API.Controllers
 {
-    [Route("api/roles")]
+    [Route("api/users")]
     public class UserManagmentController : ApiControllerBase
     {
         private readonly IMediator _mediator;
@@ -258,6 +258,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
                 Message = "Logged out successfully"
             });
         }
+        
         [HttpPost("signup")]
         [ProducesResponseType(typeof(ApiResponse<UserSignupResponse>), StatusCodes.Status201Created)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -304,7 +305,6 @@ namespace MOJ.Modules.UserManagments.API.Controllers
             }
         }
 
-
         [HttpGet("check-availability")]
         [ProducesResponseType(typeof(ApiResponse<CheckAvailabilityResponse>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
@@ -343,6 +343,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
                 });
             }
         }
+        
         [Authorize(Roles = "SuperAdmin,Admin,Manager")]
         [HttpPost("change-role")]
         [ProducesResponseType(typeof(ApiResponse<ChangeUserRoleResponse>), StatusCodes.Status200OK)]

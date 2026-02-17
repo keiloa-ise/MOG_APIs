@@ -18,7 +18,7 @@ using System.Threading.Tasks;
 namespace MOJ.Modules.UserManagments.API.Controllers
 {
     [Authorize(Roles = "SuperAdmin,Admin")]
-    [Route("api/[controller]")]
+    [Route("api/departments")]
     [ApiController]
     public class DepartmentsController : ApiControllerBase
     {
@@ -33,6 +33,7 @@ namespace MOJ.Modules.UserManagments.API.Controllers
 
         [HttpGet]
         [ProducesResponseType(typeof(ApiResponse<List<DepartmentDto>>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> GetAllDepartments(
             [FromQuery] bool? isActive = null,
             [FromQuery] bool includeHierarchy = false)
@@ -52,6 +53,8 @@ namespace MOJ.Modules.UserManagments.API.Controllers
 
         [HttpPost]
         [ProducesResponseType(typeof(ApiResponse<DepartmentDto>), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> CreateDepartment([FromBody] CreateDepartmentRequest request)
         {
             try

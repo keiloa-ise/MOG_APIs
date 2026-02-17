@@ -16,7 +16,7 @@ using System.Threading.Tasks;
 namespace MOJ.Modules.UserManagments.API.Controllers
 {
     [ApiController]
-    [Route("api/[controller]")]
+    [Route("api/roles")]
     [Authorize(Roles = "SuperAdmin,Admin")] 
     public class RolesController : ApiControllerBase
     {
